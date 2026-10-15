@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灰白小兔互動網站 Somo’s Interactive web page</title>
+    <style>
+        :root {
+            --clay-bg: #eef2f5;
+            --clay-card: #fff6eb;
+            --clay-border: #7c685b;
+            --clay-btn: #ffab91;
+            --clay-btn-border: #d84315;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: 'Segoe UI', Microsoft JhengHei, sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 56.25vw;
+            max-width: 177.78vh;
+            max-height: 100vh;
+            background-color: var(--clay-bg);
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        /* 1. 開場頁面 Landing Page */
+        #intro-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, #fce4ec 0%, #e8eaf6 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.8s ease, visibility 0.8s;
+            padding: 20px;
+        }
+
+        .clay-card {
+            background: var(--clay-card);
+            border: 6px solid var(--clay-border);
+            border-radius: 28px;
+            padding: 25px 35px;
+            box-shadow: 8px 8px 0px #bcaaa4, inset -4px -4px 0px rgba(0,0,0,0.05);
+            max-width: 680px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .intro-title {
+            font-size: 24px;
+            color: #5d4037;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+
+        .intro-avatar {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            box-shadow: 4px 4px 0px #bcaaa4;
+            object-fit: cover;
+            background-color: #d7ccc8;
+            margin-bottom: 8px;
+        }
+
+        .intro-date {
+            font-size: 14px;
+            color: #8d6e63;
+            font-weight: bold;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .intro-text {
+            font-size: 14px;
+            color: #4e342e;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            white-space: pre-line;
+        }
+
+        .clay-btn {
+            background: var(--clay-btn);
+            color: #4e342e;
+            border: 4px solid var(--clay-btn-border);
+            padding: 10px 32px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px var(--clay-btn-border);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .clay-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--clay-btn-border);
+        }
+
+        /* 主 Canvas */
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: pointer;
+        }
+
+        /* UI 層 */
+        .ui-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+
+        .top-bar {
+            position: absolute;
+            top: 15px; left: 15px; right: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .scene-indicator {
+            background: #fff;
+            border: 3px solid #5d4037;
+            padding: 6px 18px;
+            border-radius: 16px;
+            font-weight: bold;
+            color: #5d4037;
+            box-shadow: 3px 3px 0 #5d4037;
+            font-size: 16px;
+        }
+
+        .icon-btn {
+            background: #ffe082;
+            border: 3px solid #ff8f00;
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 #ff8f00;
+            font-size: 20px;
+        }
+
+        /* 門場景選擇彈窗 */
+        #door-modal {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 75;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s;
+            pointer-events: auto;
+        }
+
+        #door-modal.active { opacity: 1; visibility: visible; }
+
+        .door-card {
+            background: #fff6eb;
+            border: 5px solid #5d4037;
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 6px 6px 0 #5d4037;
+        }
+
+        .door-options {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        /* 拍立得彈窗 Polaroid */
+        #polaroid-modal {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.65);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 90;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s;
+            pointer-events: auto;
+        }
+
+        #polaroid-modal.active { opacity: 1; visibility: visible; }
+
+        .polaroid-frame {
+            background: #fff;
+            padding: 16px 16px 22px 16px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 8px #eae6df;
+            width: 380px;
+            max-width: 90vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: rotate(-1.5deg);
+            position: relative;
+        }
+
+        .media-box {
+            width: 100%;
+            height: 250px;
+            background: #111;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .media-box img, .media-box video {
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+
+        .polaroid-caption {
+            margin-top: 14px;
+            font-size: 15px;
+            color: #3e2723;
+            text-align: center;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: -12px; right: -12px;
+            background: #ff5252;
+            color: #fff;
+            border: 3px solid #b71c1c;
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* 小遊戲全螢幕蓋板 */
+        .minigame-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255, 248, 225, 0.96);
+            z-index: 80;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s;
+            pointer-events: auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .minigame-overlay.active { opacity: 1; visibility: visible; }
+        .game-title { font-size: 24px; color: #4e342e; margin-bottom: 12px; font-weight: bold; }
+
+        .veggie-options {
+            display: flex; gap: 20px; margin-top: 20px;
+        }
+        .veggie-card {
+            background: #fff; border: 4px solid #8d6e63;
+            padding: 20px 30px; border-radius: 16px;
+            font-size: 20px; font-weight: bold; cursor: pointer;
+            box-shadow: 4px 4px 0 #8d6e63;
+        }
+        .veggie-card:hover { background: #ffe0b2; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- 1. 開場頁面 -->
+    <div id="intro-overlay">
+        <div class="clay-card">
+            <div class="intro-title">灰白小兔互動網站 Somo’s Interactive web page</div>
+            <img src="assets/intro_somo.jpg" alt="小比" class="intro-avatar" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'><circle cx=\'50\' cy=\'50\' r=\'40\' fill=\'%23a0a0a0\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23fff\'>小比</text></svg>'">
+            <div class="intro-date">2015.06.08 - 2025.12.27</div>
+            <div class="intro-text">歡迎來到小比的互動網站！
+小比是一隻擁有灰白柔順毛毛、明亮大眼、美麗長睫毛與滿滿個性的聰明好兔寶。
+這裡紀錄了小比的生活點滴，請跟著小比的腳步，穿梭於溫馨房間、戶外海邊與青青草地，解鎖屬於牠的每一段故事。
+點擊「開始！」，跟著小比一起漫遊這個充滿回憶與溫暖的小天地吧 ₍ᐢ.ˬ.ᐢ₎✨</div>
+            <button class="clay-btn" id="start-btn">開始！</button>
+        </div>
+    </div>
+
+    <!-- 2. 主 2.5D Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- UI 控制層 -->
+    <div class="ui-layer">
+        <div class="top-bar">
+            <div class="scene-indicator" id="scene-name">空間一：室內房間</div>
+            <div class="icon-btn" id="bgm-toggle">🎵</div>
+        </div>
+    </div>
+
+    <!-- 門過場彈窗 -->
+    <div id="door-modal">
+        <div class="door-card">
+            <h3 style="color:#5d4037; margin-bottom:10px;">🚪 開門去哪裡散步呢？</h3>
+            <div class="door-options">
+                <button class="clay-btn" id="go-beach-btn">🌊 戶外海邊</button>
+                <button class="clay-btn" id="go-meadow-btn">🌿 戶外草地</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 記憶拍立得彈窗 -->
+    <div id="polaroid-modal">
+        <div class="polaroid-frame">
+            <button class="close-btn" id="close-modal">✕</button>
+            <div class="media-box" id="media-container"></div>
+            <div class="polaroid-caption" id="modal-caption">照片說明</div>
+        </div>
+    </div>
+
+    <!-- 4. 小遊戲容器 -->
+    <div class="minigame-overlay" id="minigame-container"></div>
+</div>
+
+<script>
+    // --- 全域狀態與關卡資料 ---
+    const state = {
+        currentScene: 'room', // room, beach, meadow
+        rabbitPos: { x: 300, y: 350 },
+        targetPos: { x: 300, y: 350 },
+        isMoving: false,
+        actionAnim: null // '趴趴', '討摸摸', 'binky'
+    };
+
+    // 10 個互動點 (資源路徑相容模式)
+    const points = {
+        // 空間一：室內房間 (7)
+        marble: { scene: 'room', x: 280, y: 220, label: '大理石板', type: 'click', action: '趴趴',
+            media: { type: 'image', path: 'assets/p1', text: '天氣太熱啦！瞬間融化成一張冰涼的兔餅 🧊' }
+        },
+        bookcase: { scene: 'room', x: 140, y: 160, label: '書櫃', type: 'click',
+            media: { type: 'image', path: 'assets/p2', text: '主人說讀完這章有點心吃 ₍ᐢ.ˬ.ᐢ₎' }
+        },
+        chair: { scene: 'room', x: 480, y: 220, label: '書桌椅', type: 'click', action: '討摸摸',
+            media: { type: 'video', path: 'assets/v1', text: '讀書累了嗎？摸摸小比頭頭可以補充 100% 電量喔！' }
+        },
+        veggieBox: { scene: 'room', x: 520, y: 360, label: '蔬果箱', type: 'game', gameType: 'veggie',
+            media: { type: 'image', path: 'assets/p3', text: '名副其實的櫻桃小嘴🍒' }
+        },
+        hayRack: { scene: 'room', x: 260, y: 280, label: '紅色草碗', type: 'game', gameType: 'hay',
+            media: { type: 'image', path: 'assets/p4', text: '平常乾草吃多了，也來點新鮮牧草!' }
+        },
+        bedding: { scene: 'room', x: 380, y: 410, label: '寢具棉被', type: 'game', gameType: 'bedding',
+            media: { type: 'video', path: 'assets/v2', text: '小比不愛布製品，棉被 枕頭 衣服 毛巾都攻擊' }
+        },
+        litterBox: { scene: 'room', x: 140, y: 280, label: '綠色便盆', type: 'game', gameType: 'litter',
+            media: { type: 'image', path: 'assets/p5', text: '我是隻會用便盆的聰明好兔寶' }
+        },
+
+        // 空間二：戶外海邊 (1)
+        ship: { scene: 'beach', x: 520, y: 220, label: '小比號', type: 'click',
+            media: { type: 'image', path: 'assets/p6', text: '小比雖然沒搭過船，但有在沙灘奔跑、吹過海風呦!' }
+        },
+
+        // 空間三：戶外草地 (2)
+        ropeway: { scene: 'meadow', x: 320, y: 140, label: '貓空纜車', type: 'click',
+            media: { type: 'video', path: 'assets/v3', text: '特別的體驗！飛在空中小兔 Cable Car 🚠' }
+        },
+        signboard: { scene: 'meadow', x: 460, y: 320, label: '兔子專用草地', type: 'game', gameType: 'binky',
+            media: { type: 'video', path: 'assets/v4', text: '我好像跑太快了嘻嘻～✨' }
+        }
+    };
+
+    // --- Canvas 繪圖引擎 ---
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBackground();
+        drawObjects();
+        drawSomo();
+
+        if (state.isMoving) {
+            const dx = state.targetPos.x - state.rabbitPos.x;
+            const dy = state.targetPos.y - state.rabbitPos.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < 4) {
+                state.rabbitPos.x = state.targetPos.x;
+                state.rabbitPos.y = state.targetPos.y;
+                state.isMoving = false;
+            } else {
+                state.rabbitPos.x += (dx / dist) * 3;
+                state.rabbitPos.y += (dy / dist) * 3;
+            }
+        }
+
+        requestAnimationFrame(render);
+    }
+
+    // 場景背景 (2.5D 手工黏土質感)
+    function drawBackground() {
+        const w = canvas.width, h = canvas.height;
+        if (state.currentScene === 'room') {
+            ctx.fillStyle
